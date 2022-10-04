@@ -2,6 +2,8 @@ const express = require('express')
 const app = express()
 var morgan = require('morgan')
 const cors = require('cors')
+const Person = require('./models/person')
+require('dotenv').config()
 
 app.use(express.json())
 app.use(cors())
@@ -40,48 +42,59 @@ let data = [
 ]
 
 app.get('/api/persons', (request, response) => {
-    response.json(data)
+    Person.find({}).then((persons) => {
+      response.json(persons)
+    })
 })
 
 app.get('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id)
-    const person = data.find(obj => obj.id === id)
-    if (person === null) {
+    const id = request.params.id
+    Person.findById(id)
+    .then((person) => {
+      if (person) {
+        response.json(person)
+      } 
+      else {
         response.status(404).end()
-    }
-    response.json(person)
+      }
+    })
+    .catch((error) => next(error))
 })
 
 app.get('/info', (request, response) => {
     const date = new Date()
-    response.send(`Phonebook has info on ${data.length} people\n ${date}`)
+    Person.find({})
+    .then((people) => {
+      response.send(
+        `<p>Phonebook has info for ${people.length} people</p><p>${date}</p>`
+      );
+    })
+    .catch((error) => next(error));
 })
 
 app.delete('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id)
-    data = data.filter(obj => obj.id !== id)
-    response.status(204).end()
+    const id = request.params.id
+    Person.findByIdAndDelete(id)
+    .then(() => {
+      response.status(204).end()
+    })
+    .catch((error) => next(error))
 })
 
 app.post('/api/persons', (request, response) => {
     const body = request.body
-    const newId = Math.floor(Math.random() * 10)
-    if (!body.name || !body.number || data.map(obj => obj.name).includes(body.name)) {
-        return response.status(404).json({
-            error: 'content missing'
-        })
-    }
-    const newPerson = {
-        name: body.name,
-        number: body.number,
-        id: newId
+    const person = new Person({
+      name: body.name,
+      number: body.number
+    })
 
-    }
-    data = data.concat(newPerson)
-    response.json(newPerson)
+    person.save().then((person) => {
+      response.json(person)
+    })
+    .catch((error) => next(error))
 })
 
-const PORT = process.env.PORT ||3001
+const PORT = process.env.PORT
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
