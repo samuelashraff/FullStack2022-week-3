@@ -13,9 +13,35 @@ mongoose
     console.log("error connecting to MongoDB:", error.message);
   });
 
+const validators = [
+  {
+    validator: (number) => {
+      if ((number[2] === "-" || number[3] === "-") && number.length < 9) {
+        return false;
+      }
+      return true;
+    },
+    msg: "must be at least 8 digits",
+  },
+  {
+    validator: (number) => {
+      return /^\d{2,3}-\d+$/.test(number);
+    },
+    msg: "invalid phone number",
+  },
+];
+
 const personSchema = new mongoose.Schema({
-  name: String,
-  number: String,
+  name: {
+    type: String,
+    minlength: 3,
+    required: true,
+  },
+  number: {
+    type: String,
+    validate: validators,
+    required: true,
+  },
 });
 
 personSchema.set("toJSON", {
